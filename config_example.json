@@ -1,0 +1,8 @@
+{
+    "media_path": "/home/nix/cdn",
+    "meta_subfolder": "meta",
+    "symlink_subfolder": "temp",
+    "server_port": 32871,
+    "media_serve_url": "/media",
+    "website_root": ""
+}

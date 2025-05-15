@@ -1,0 +1,408 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Details Page</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #121212;
+            color: #ffffff;
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+        }
+
+        .header {
+            background-color: #1e1e1e;
+            padding: 10px;
+            display: flex;
+            align-items: center;
+        }
+
+        .back-button {
+            background-color: #333;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+
+        .content {
+            display: flex;
+            flex: 1;
+            overflow: hidden;
+            flex-direction: row;
+        }
+
+        .media-container {
+            width: 300px;
+            background-color: #1e1e1e;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+            overflow: auto;
+            order: 1;
+        }
+
+        .media-container img,
+        .media-container video {
+            max-width: 100%;
+            max-height: 100%;
+            border-radius: 8px;
+        }
+
+        .main-data {
+            flex-shrink: 0;
+            flex-grow: 1;
+            padding: 20px;
+            overflow: auto;
+            order: 2;
+
+        }
+
+        .filename {
+            font-size: 24px;
+            margin-bottom: 20px;
+        }
+
+        .comment-section {
+            margin-bottom: 20px;
+        }
+
+        .comment-input {
+            width: 100%;
+            padding: 10px;
+            font-size: 16px;
+            background-color: #1e1e1e;
+            color: #ffffff;
+            border: 1px solid #333;
+            border-radius: 4px;
+            margin-bottom: 10px;
+        }
+
+        .save-button {
+            background-color: #333;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+
+        .symlinks-section {
+            margin-top: 20px;
+        }
+
+        .symlinks-list {
+            max-height: 200px;
+            overflow-y: auto;
+            border: 1px solid #333;
+            padding: 10px;
+            margin-bottom: 10px;
+        }
+
+        .symlink-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 5px;
+            border-bottom: 1px solid #333;
+        }
+
+        .create-symlink-button {
+            background-color: #333;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+
+        .time-inputs {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 10px;
+        }
+
+        .time-inputs input {
+            width: 60px;
+            padding: 8px;
+            background-color: #1e1e1e;
+            color: #ffffff;
+            border: 1px solid #333;
+            border-radius: 4px;
+        }
+
+        .delete-button,
+        .copy-raw-button,
+        .copy-fancy-button {
+            background-color: #333;
+            color: white;
+            border: none;
+            padding: 4px 8px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin-left: 5px;
+        }
+
+        .symlink-item>*:not(:last-child) {
+            margin-right: 5px;
+        }
+
+        @media (max-width: 768px) {
+            .content {
+                flex-direction: column;
+            }
+
+            .media-container {
+                width: 100%;
+                order: 2;
+            }
+
+            .main-data {
+                order: 1;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="header">
+        <button class="back-button" onclick="window.history.back()">Back</button>
+    </div>
+    <div class="content">
+        <div class="main-data">
+            <div class="filename" id="filename"></div>
+            <div class="comment-section">
+                <textarea class="comment-input" id="comment-input" placeholder="Enter comment..."></textarea>
+                <button class="save-button" onclick="saveComment()">Save</button>
+            </div>
+            <div class="symlinks-section">
+                <div class="time-inputs">
+                    <input type="number" id="days" placeholder="Days" min="0">
+                    <input type="number" id="hours" placeholder="Hours" min="0">
+                    <input type="number" id="minutes" placeholder="Minutes" min="0">
+                    <input type="number" id="seconds" placeholder="Seconds" min="0">
+                </div>
+                <button class="create-symlink-button" onclick="createSymlink()">Create Symlink</button>
+                <div class="symlinks-list" id="symlinks-list">
+                    <!-- Symlinks will be added here -->
+                </div>
+            </div>
+        </div>
+        <div class="media-container">
+            <div id="media"></div>
+        </div>
+    </div>
+
+    <script>
+        const website_root = '{{ website_root }}';
+        const media_serve_url = '{{ media_serve_url }}';
+        const symlink_subfolder = '{{ symlink_subfolder }}';
+        const meta_subfolder = '{{ meta_subfolder }}';
+        const duration = parseFloat('{{ duration }}');
+        const symlinks = JSON.parse('{{symlinks | tojson}}');
+        const filename = '{{ filename }}';
+        let comment = '{{ comments }}';
+        if (comment == "None") {
+            comment = null;
+        }
+
+        console.log(symlinks);
+
+        function mediaType(filename) {
+            filename = filename.toLowerCase();
+            if (filename.endsWith(".png") || filename.endsWith(".jpg") || filename.endsWith(".jpeg") || filename.endsWith(".heic"))
+                return 'image';
+            if (filename.endsWith(".mov") || filename.endsWith(".mp4"))
+                return 'video';
+            return 'unknown';
+        }
+
+        function formatTime(seconds) {
+            const days = Math.floor(seconds / (3600 * 24));
+            const hours = Math.floor((seconds % (3600 * 24)) / 3600);
+            const minutes = Math.floor((seconds % 3600) / 60);
+            const secs = Math.floor(seconds % 60);
+
+            return `${days}d:${hours}h:${minutes}m:${secs}s`;
+        }
+
+        function updateExpirationTimes() {
+            const now = Math.floor(Date.now() / 1000);
+            const symlinkItems = document.querySelectorAll('.symlink-item');
+
+            symlinkItems.forEach(item => {
+                const expiresOn = parseFloat(item.getAttribute('data-expires-on'));
+                const remainingTime = expiresOn - now;
+                const timeElement = item.querySelector('.expires-in');
+                timeElement.textContent = formatTime(remainingTime > 0 ? remainingTime : 0);
+            });
+        }
+
+        document.addEventListener('DOMContentLoaded', function () {
+            if (mediaType(filename) == 'video') {
+                document.getElementById('filename').textContent = `${filename} (${duration})`;
+            } else {
+                document.getElementById('filename').textContent = filename;
+            }
+
+            document.getElementById('comment-input').value = comment;
+
+            const mediaContainer = document.getElementById('media');
+            const mediaUrl = `${media_serve_url}/${encodeURIComponent(filename)}`;
+            const mediaTypeValue = mediaType(filename);
+
+            if (mediaTypeValue === 'image') {
+                const img = document.createElement('img');
+                img.src = mediaUrl;
+                img.alt = filename;
+                mediaContainer.appendChild(img);
+            } else if (mediaTypeValue === 'video') {
+                const video = document.createElement('video');
+                video.src = mediaUrl;
+                video.controls = true;
+                mediaContainer.appendChild(video);
+            } else {
+                mediaContainer.innerHTML = `<h2>UNKNOWN FILETYPE: ${filename}</h2>`;
+            }
+
+            if (symlinks != null) {
+                const symlinksList = document.getElementById('symlinks-list');
+                Object.entries(symlinks).forEach(([filename, content]) => {
+                    const symlinkItem = document.createElement('div');
+                    symlinkItem.className = 'symlink-item';
+                    symlinkItem.setAttribute('data-expires-on', content.expires_on);
+
+                    const now = Math.floor(Date.now() / 1000);
+                    const remainingTime = content.expires_on - now;
+
+                    symlinkItem.innerHTML = `
+                        <span>${filename}</span>
+                        <span class="expires-in">${formatTime(remainingTime > 0 ? remainingTime : 0)}</span>
+                        <button class="copy-raw-button" onclick="copyRaw('${filename}')">📋</button>
+                        <button class="copy-fancy-button" onclick="copyFancy('${filename}')">🎨</button>
+                        <button class="delete-button" onclick="deleteSymlink('${filename}')">❌</button>
+                    `;
+                    symlinksList.appendChild(symlinkItem);
+                });
+
+                // Update expiration times every minute
+                setInterval(updateExpirationTimes, 1000);
+            }
+        });
+
+        // Function to save comment
+        function saveComment() {
+            const comment = document.getElementById('comment-input').value;
+            const new_comment = comment == "" ? null : comment;
+            fetch(`${website_root}/set_comment`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    new_comment: new_comment,
+                    filename: filename
+                }),
+            })
+                .then(data => {
+                    console.log('Success:', data);
+                })
+                .catch((error) => {
+                    console.error('Error:', error);
+                });
+        }
+
+        // Function to create symlink
+        function createSymlink() {
+            const days = parseInt(document.getElementById('days').value) || 0;
+            const hours = parseInt(document.getElementById('hours').value) || 0;
+            const minutes = parseInt(document.getElementById('minutes').value) || 0;
+            const seconds = parseInt(document.getElementById('seconds').value) || 0;
+
+            const expiresInSeconds = days * 86400 + hours * 3600 + minutes * 60 + seconds;
+
+            fetch(`${website_root}/create_symlink`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    expires_in_seconds: expiresInSeconds,
+                    filename: filename
+                }),
+            })
+                .then(data => {
+                    console.log('Success:', data);
+                    window.location.reload();
+                })
+                .catch((error) => {
+                    alert("Error: " + error);
+                    console.error('Error:', error);
+                });
+        }
+
+        // Function to delete symlink
+        function deleteSymlink(key) {
+            fetch(`${website_root}/delete_symlink`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    filename: filename,
+                    symlink_name: key
+                }),
+            })
+                .then(data => {
+                    console.log('Success:', data);
+                    window.location.reload();
+                })
+                .catch((error) => {
+                    alert("Error: " + error);
+                    console.error('Error:', error);
+                });
+        }
+
+        function copyToClipboardSafariSupportLmao(toCopy) {
+            // Thanks to https://stackoverflow.com/a/65389852/10321409
+            // navigator.smth doesn't work on my iOS Safari.
+            var clipBoardElem = document.createElement("input");
+            document.body.appendChild(clipBoardElem);
+            clipBoardElem.value = toCopy;
+            clipBoardElem.select();
+            var successfulCopy = document.execCommand('copy');
+            document.body.removeChild(clipBoardElem)
+        }
+
+        // Lazy for the two below
+        function copyRaw(key) {
+            console.log('Copy Raw:', key);
+
+            // Easily get the full url without handling cases manually
+            const img = new Image();
+            img.src = `${media_serve_url}/${symlink_subfolder}/${key}`
+
+            copyToClipboardSafariSupportLmao(img.src)
+        }
+
+        function copyFancy(key) {
+            console.log('Copy Fancy:', key);
+
+            const img = new Image();
+            img.src = `${website_root}/embed/${key}`
+
+            copyToClipboardSafariSupportLmao(img.src)
+        }
+    </script>
+</body>
+
+</html>

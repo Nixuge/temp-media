@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=0.5">
+    <title>Embedded Media</title>
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Comfortaa:wght@300..700&display=swap" rel="stylesheet">
+
+    <!-- Open Graph / Facebook -->
+    <meta property="og:type" content="CDN">
+    {#
+    <meta property="og:url" content="https://example.com/your-page.html"> #}
+    <meta property="og:title" content="Embedded Media">
+    <meta property="og:description" content="Check out this embedded media!">
+    <meta property="og:image" content="{{ thumb_url }}">
+
+    <!-- Twitter -->
+    <meta property="twitter:card" content="summary_large_image">
+    {#
+    <meta property="twitter:url" content="https://example.com/your-page.html"> #}
+    <meta property="twitter:title" content="Embedded Media">
+    <meta property="twitter:description" content="Check out this embedded media!">
+    <meta property="twitter:image" content="{{ thumb_url }}">
+
+
+    <style>
+        body {
+            text-align: center;
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            background-color: #121212;
+            color: #bc54ed;
+            font-family: "Comfortaa", sans-serif;
+            font-optical-sizing: auto;
+            font-weight: 500;
+            font-style: normal;
+            text-decoration: underline;
+        }
+        h1 {
+            padding: 0;
+            margin: 10px;
+        }
+
+        .media-container {
+            margin: 0;
+            position: absolute;
+            left: 50%;
+            transform: translateX(-50%);
+        }
+    </style>
+</head>
+
+<body>
+    <h1>{{ filename }}</h1>
+
+    {% if is_video %}
+    <div class="media-container">
+        <video controls>
+            <source src="{{ url }}" type="video/mp4">
+            Your browser does not support the video tag.
+        </video>
+    </div>
+    {% else %}
+    <div class="media-container">
+        <img src="{{ url }}" alt="Placeholder Image" width="640">
+    </div>
+    {% endif %}
+</body>
+
+</html>

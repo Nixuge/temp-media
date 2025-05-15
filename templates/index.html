@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Infinite Image Grid</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="search-filter-container">
+        <input type="text" id="search-bar" placeholder="Search by title or comment...">
+        <label><input type="checkbox" id="show-images" checked> 📷</label>
+        <label><input type="checkbox" id="show-videos" checked> 🎬</label>
+    </div>
+    <div class="image-grid" id="image-grid">
+        <!-- Images will be inserted here by JavaScript -->
+    </div>
+    <script src="script.js"></script>
+
+<style>
+body {
+    font-family: Arial, sans-serif;
+    margin: 0;
+    padding: 20px;
+    background-color: #121212;
+    color: #ffffff;
+}
+
+.search-filter-container {
+    display: flex;
+    align-items: center;
+    margin-bottom: 20px;
+}
+
+.search-filter-container input[type="text"] {
+    flex: 1;
+    padding: 10px;
+    font-size: 16px;
+    background-color: #1e1e1e;
+    color: #ffffff;
+    border: 1px solid #333;
+    border-radius: 4px;
+}
+
+.search-filter-container label {
+    display: flex;
+    align-items: center;
+    margin-left: 10px;
+}
+
+.image-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 20px;
+}
+
+.image-item {
+    text-align: center;
+    background-color: #1e1e1e;
+    padding: 10px;
+    border-radius: 8px;
+    position: relative;
+    cursor: pointer;
+}
+
+.image-item img {
+    width: 100%;
+    height: auto;
+    border-radius: 8px;
+}
+
+.image-glyph {
+    position: absolute;
+    top: 10px;
+    left: 10px;
+    background-color: rgba(62, 62, 62, 0.7);
+    color: white;
+    padding: 2px 5px;
+    border-radius: 8px 0 5px 0;
+    font-size: 20px;
+}
+
+.image-item h3 {
+    margin: 10px 0 5px;
+    color: #ffffff;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    overflow: hidden;
+}
+
+.image-item p {
+    font-size: 14px;
+    color: #aaaaaa;
+}
+.footer {
+    /* TODO: Fix, anchor AT BOTTOM. */
+}
+
+</style>
+<script>
+ document.addEventListener('DOMContentLoaded', function() {
+    const imageGrid = document.getElementById('image-grid');
+    const searchBar = document.getElementById('search-bar');
+    const showImagesCheckbox = document.getElementById('show-images');
+    const showVideosCheckbox = document.getElementById('show-videos');
+
+    const media_serve_url = '{{ media_serve_url }}';
+    const symlink_subfolder = '{{ symlink_subfolder }}';
+    const meta_subfolder = '{{ meta_subfolder }}';
+    const data = JSON.parse('{{files | tojson}}');
+
+    console.log(data);
+
+    function mediaType(filename) {
+        filename = filename.toLowerCase()
+        if (filename.endsWith(".png") || filename.endsWith(".jpg") || filename.endsWith(".jpeg") || filename.endsWith(".heic"))
+            return 'image';
+        if (filename.endsWith(".mov") || filename.endsWith(".mp4"))
+            return 'video';
+        return 'unknown'
+    }
+
+    // Function to render images
+    function renderImages(images) {
+        imageGrid.innerHTML = '';
+        images.forEach(image => {
+            const imageItem = document.createElement('div');
+            imageItem.className = 'image-item';
+
+            const fileName = image["filename"].toLowerCase();
+            let comment = image["comment"] ?? "No comment";
+
+            let glyph = '';
+            if (mediaType(fileName) == 'video') {
+                glyph = '🎬';
+            } else if (mediaType(fileName) == 'image') {
+                glyph = '📷';
+            }
+
+            if (mediaType(fileName) == 'video') {
+                imageItem.innerHTML = `
+                    <div class="image-glyph">${glyph}</div>
+                    <img src="${media_serve_url}/${meta_subfolder}/${image.filename}-thumb.png" alt="${image.filename}">
+                    <div class="footer">
+                        <h3>${image.filename}</h3>
+                        <p>${comment}</p>
+                    </div>
+                `;
+            } else if (mediaType(fileName) == 'image') {
+                imageItem.innerHTML = `
+                    <div class="image-glyph">${glyph}</div>
+                    <img src="${media_serve_url}/${image.filename}" alt="${image.filename}">
+                    <div class="footer">
+                        <h3>${image.filename}</h3>
+                        <p>${comment}</p>
+                    </div>
+                `;
+            } else {
+                imageItem.innerHTML = `<h2>UNKNOWN FILETYPE: ${fileName}</h2>`;
+            }
+
+            imageItem.addEventListener('click', function() {
+                window.location.href = `${encodeURIComponent(image.filename)}`;
+            });
+
+            imageGrid.appendChild(imageItem);
+        });
+    }
+
+    // Function to filter images based on search input and checkboxes
+    function filterImages() {
+        const searchTerm = searchBar.value.toLowerCase();
+        const showImages = showImagesCheckbox.checked;
+        const showVideos = showVideosCheckbox.checked;
+
+        const filteredImages = data.filter(image => {
+            const fileName = image.filename.toLowerCase();
+            const matchesSearchTerm = image.filename.toLowerCase().includes(searchTerm) ||
+                                      (image.comment ?? "").toLowerCase().includes(searchTerm);
+
+            if (!matchesSearchTerm) return false;
+
+            if (!showImages && mediaType(fileName) == 'image') {
+                return false;
+            }
+
+            if (!showVideos && mediaType(fileName) == 'video') {
+                return false;
+            }
+
+            return true;
+        });
+
+        renderImages(filteredImages);
+    }
+
+    // Debounce function to limit the rate at which a function can fire
+    function debounce(func, wait) {
+        let timeout;
+        return function() {
+            const context = this, args = arguments;
+            clearTimeout(timeout);
+            timeout = setTimeout(function() {
+                func.apply(context, args);
+            }, wait);
+        };
+    }
+
+    // Event listeners
+    searchBar.addEventListener('input', filterImages);
+    showImagesCheckbox.addEventListener('change', filterImages);
+    showVideosCheckbox.addEventListener('change', filterImages);
+
+    // Initial render
+    renderImages(data);
+});
+</script>
+</html>
