@@ -1,4 +1,4 @@
-#!./venv/bin/python
+#!./.venv/bin/python
 
 # -*- coding: utf-8 -*-
 
@@ -57,7 +57,8 @@ def load_vars(config_filename: str = "config.json"):
 
         return True
     
-    except: return False
+    except Exception as e: 
+        return e
 
 class VARS: #default vars, you still need a json.
     secret: str
@@ -397,8 +398,9 @@ def thread_func():
 
 if __name__ == "__main__":
     print("Loading config")
-    if not load_vars():
-        print("Issue loading the config ! make sure it's there and that everything is set correctly")
+    config_res = load_vars()
+    if config_res != True:
+        print(f"Issue loading the config ! make sure it's there and that everything is set correctly ({config_res})")
         exit(1)
     
     if not os.path.exists(f"{VARS.media_path}/{VARS.meta_subfolder}"):
