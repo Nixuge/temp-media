@@ -315,14 +315,15 @@
         function saveComment() {
             const comment = document.getElementById('comment-input').value;
             const new_comment = comment == "" ? null : comment;
-            fetch(`${website_root}/set_comment`, {
+            fetch(`${website_root}/api/set_comment`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                 },
                 body: JSON.stringify({
                     new_comment: new_comment,
-                    filename: filename
+                    filename: filename,
+                    token: '{{ token }}'
                 }),
             })
                 .then(data => {
@@ -342,14 +343,15 @@
 
             const expiresInSeconds = days * 86400 + hours * 3600 + minutes * 60 + seconds;
 
-            fetch(`${website_root}/create_symlink`, {
+            fetch(`${website_root}/api/create_symlink`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                 },
                 body: JSON.stringify({
                     expires_in_seconds: expiresInSeconds,
-                    filename: filename
+                    filename: filename,
+                    token: '{{ token }}'
                 }),
             })
                 .then(data => {
@@ -364,14 +366,15 @@
 
         // Function to delete symlink
         function deleteSymlink(key) {
-            fetch(`${website_root}/delete_symlink`, {
+            fetch(`${website_root}/api/delete_symlink`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                 },
                 body: JSON.stringify({
                     filename: filename,
-                    symlink_name: key
+                    symlink_name: key,
+                    token: '{{ token }}'
                 }),
             })
                 .then(data => {
@@ -417,13 +420,14 @@
 
         function deleteMedia(key) {
             if (confirm(`Are you sure you want to delete ${filename}?`)) {
-                fetch(`${website_root}/delete_file`, {
+                fetch(`${website_root}/api/delete_file`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                 },
                 body: JSON.stringify({
                     filename: filename,
+                    token: '{{ token }}'
                 }),
             })
                 .then(data => {

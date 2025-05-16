@@ -4,5 +4,6 @@
     "symlink_subfolder": "temp",
     "server_port": 32871,
     "media_serve_url": "/media",
-    "website_root": ""
+    "website_root": "",
+    "secret": "feur"
 }

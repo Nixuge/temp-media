@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Authentication</title>
+    <style>
+        input, button {
+            background-color: #333;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        input {
+            padding: 8px 0;
+            width: 100%;
+            text-align: center;
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: Arial, sans-serif;
+            background-color: #121212;
+            color: #ffffff;
+            display: flex;
+            flex-direction: column;
+        }
+
+        #content {
+            text-align: center;
+            width: 80%;
+            margin: 0;
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+        }
+    </style>
+</head>
+
+<body>
+    <div id="content">
+        <h1>Authentification required.</h1>
+        <form id="auth-form">
+            <input type="text" name="auth-token" id="auth-token" placeholder="Enter your token">
+            <br>
+            <button type="button" onclick="setCookieAndRefresh()" style="margin-top: 10px;">Set Token</button>
+        </form>
+    </div>
+
+    <script>
+        function setCookieAndRefresh() {
+            var token = document.getElementById('auth-token').value;
+            if (token) {
+                var expirationDate = new Date();
+                expirationDate.setFullYear(expirationDate.getFullYear() + 10); // Expires in 10 years
+                document.cookie = "authToken=" + token + "; expires=" + expirationDate.toUTCString() + "; path=/";
+                window.location.reload(); // Refresh the page
+            } else {
+                alert('Please enter a token.');
+            }
+        }
+    </script>
+</body>
+
+</html>

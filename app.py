@@ -22,6 +22,7 @@ def load_vars(config_filename: str = "config.json"):
         with open(config_filename) as json_file:
             data = json.load(json_file)
 
+        VARS.secret = data["secret"]
         VARS.website_root = data["website_root"]
         VARS.media_serve_url = data["media_serve_url"]
         VARS.media_path = data["media_path"]
@@ -59,6 +60,7 @@ def load_vars(config_filename: str = "config.json"):
     except: return False
 
 class VARS: #default vars, you still need a json.
+    secret: str
     website_root: str
     media_serve_url: str
     media_path: str
@@ -195,16 +197,74 @@ def add_symlink(filename: str, expires_on: int) -> str:
     return symlink_filename
     
 
-@app.route("/create_symlink", methods = ["POST"])
+# ========== PANEL ROUTES ==========
+@app.route("/")
+def index():
+    if request.cookies.get("authToken") != VARS.secret:
+        return render_template("auth.html")
+    
+    return render_template(
+        "index.html",
+        media_serve_url = VARS.media_serve_url,
+        symlink_subfolder = VARS.symlink_subfolder,
+        meta_subfolder = VARS.meta_subfolder,
+        files = list_all_files(),
+        token = VARS.secret
+    )
+
+
+@app.route("/upload")
+def upload_page():
+    if request.cookies.get("authToken") != VARS.secret:
+        return render_template("auth.html")
+    
+    return render_template(
+        "upload.html",
+        website_root = VARS.website_root,
+        token = VARS.secret
+    )
+
+@app.route("/file/<filename>")
+def file_data(filename: str):
+    if request.cookies.get("authToken") != VARS.secret:
+        return render_template("auth.html")
+    
+    duration = 0
+    if is_video(filename):
+        duration = get_length(filename)
+
+    return render_template(
+        "media.html",
+        website_root = VARS.website_root,
+        media_serve_url = VARS.media_serve_url,
+        symlink_subfolder = VARS.symlink_subfolder,
+        meta_subfolder = VARS.meta_subfolder,
+        duration = duration,
+        symlinks = VARS.symlinks.get(filename),
+        comments = VARS.comments.get(filename),
+        filename = filename,
+        token = VARS.secret
+    )
+
+
+
+# ========== API ROUTES ==========
+@app.route("/api/create_symlink", methods = ["POST"])
 def create_symlink():
+    if request.json["token"] != VARS.secret: #type: ignore
+        return "Bad auth token", 403
+
     filename = request.json["filename"] #type: ignore
     expires_in_seconds = request.json["expires_in_seconds"] #type: ignore
 
     return add_symlink(filename, expires_in_seconds + (time.time_ns() / 1000000000))
 
 
-@app.route("/delete_symlink", methods = ["POST"])
+@app.route("/api/delete_symlink", methods = ["POST"])
 def delete_symlink():
+    if request.json["token"] != VARS.secret: #type: ignore
+        return "Bad auth token", 403
+    
     filename = request.json["filename"] #type: ignore
     symlink_name = request.json["symlink_name"] #type: ignore
 
@@ -215,8 +275,11 @@ def delete_symlink():
     return "success"
 
 
-@app.route("/set_comment", methods = ["POST"])
+@app.route("/api/set_comment", methods = ["POST"])
 def set_comment():
+    if request.json["token"] != VARS.secret: #type: ignore
+        return "Bad auth token", 403
+
     filename = request.json["filename"] #type: ignore
     new_comment = request.json["new_comment"] #type: ignore
     print(filename)
@@ -227,35 +290,45 @@ def set_comment():
     
     return "success"
 
-# @app.route("/get_data/<path:path>")
-# def get_data(path: str = ""):
-#     link = Link(path, request.args.get('key'))
 
-#     if not link.is_trusted:
-#         return "Must be from a trusted domain !", 400
+@app.route('/api/upload_file', methods=['POST'])
+def upload_file():
+    token = request.form.get('token')
+    if not token:
+        return 'No token provided', 400
+    if token != VARS.secret:
+        return "Bad auth token", 403
+    
+    if 'file' not in request.files:
+        return 'No file part', 400
 
-#     if not link.data_exists():
-#         link.download_file()
+    file = request.files['file']
+    if file.filename == '' or file.filename is None:
+        return 'No selected file', 400
 
-#     return send_file(link.data_path), 200
-
-
-@app.route("/")
-def index():
-    return render_template(
-        "index.html",
-        media_serve_url = VARS.media_serve_url,
-        symlink_subfolder = VARS.symlink_subfolder,
-        meta_subfolder = VARS.meta_subfolder,
-        files = list_all_files()
-    )
-
-# TO NOT BE USED: Please serve with NGINX or equivalent instead.
-@app.route('/temp_media/<path:filename>')
-def serve_media(filename: str):
-    return send_from_directory(VARS.media_path, filename)
+    file.save(f"{VARS.media_path}/{file.filename}")
+    return 'File uploaded successfully'
 
 
+@app.route('/api/delete_file', methods=['POST'])
+def delete_file():
+    if request.json["token"] != VARS.secret: #type: ignore
+        return "Bad auth token", 403
+    
+    filename = request.json['filename'] #type: ignore
+    
+    os.remove(f"{VARS.media_path}/{filename}")
+    if is_video(filename):
+        os.remove(f"{VARS.media_path}/{VARS.meta_subfolder}/{filename}-thumb.png")
+        os.remove(f"{VARS.media_path}/{VARS.meta_subfolder}/{filename}-duration.txt") #Note: May get reworked anyways.
+    
+    for link in VARS.symlinks.get(filename, {}).keys():
+        VARS.external_to_remove.append((filename, link))
+
+    return 'File deleted successfully'
+
+
+# ========== PUBLIC ROUTES ==========
 @app.route('/embed/<filename>')
 def embed_page(filename: str):
     if not os.path.exists(f"{VARS.media_path}/{VARS.symlink_subfolder}/{filename}"):
@@ -270,52 +343,19 @@ def embed_page(filename: str):
         url = url
     )
 
-@app.route("/upload")
-def upload_page():
-    return render_template(
-        "upload.html",
-        website_root = VARS.website_root
-    )
 
-@app.route('/upload_file', methods=['POST'])
-def upload_file():
-    if 'file' not in request.files:
-        return 'No file part', 400
-
-    file = request.files['file']
-    if file.filename == '' or file.filename is None:
-        return 'No selected file', 400
-
-    file.save(f"{VARS.media_path}/{file.filename}")
-    return 'File uploaded successfully'
-
-@app.route('/delete_file', methods=['POST'])
-def delete_file():
-    filename = request.json['filename'] #type: ignore
+# ========== DEBUG ROUTE ==========
+# TO NOT BE USED: Please serve with NGINX or equivalent instead.
+@app.route('/temp_media/<path:filename>')
+def serve_media(filename: str):
+    if request.cookies.get("authToken") != VARS.secret:
+        return render_template("auth.html")
     
-    os.remove(f"{VARS.media_path}/{filename}")
-    for link in VARS.symlinks.get(filename, {}).keys():
-        VARS.external_to_remove.append((filename, link))
+    return send_from_directory(VARS.media_path, filename)
 
-    return 'File deleted successfully'
 
-@app.route("/<filename>")
-def file_data(filename: str):
-    duration = 0
-    if is_video(filename):
-        duration = get_length(filename)
+# ========== END OF FLASK ROUTES ==========
 
-    return render_template(
-        "media.html",
-        website_root = VARS.website_root,
-        media_serve_url = VARS.media_serve_url,
-        symlink_subfolder = VARS.symlink_subfolder,
-        meta_subfolder = VARS.meta_subfolder,
-        duration = duration,
-        symlinks = VARS.symlinks.get(filename),
-        comments = VARS.comments.get(filename),
-        filename = filename
-    )
 
 
 def thread_func():

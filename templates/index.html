@@ -210,7 +210,7 @@ body {
             }
 
             imageItem.addEventListener('click', function() {
-                window.location.href = `${encodeURIComponent(image.filename)}`;
+                window.location.href = `file/${encodeURIComponent(image.filename)}`;
             });
 
             imageGrid.appendChild(imageItem);

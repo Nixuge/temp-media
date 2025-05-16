@@ -70,10 +70,11 @@
     </div>
     <div id="content">
         <h1>Upload an Image or Video</h1>
-        <form id="upload-form" action="{{ website_root }}/upload_file" method="post" enctype="multipart/form-data">
+        <form id="upload-form" action="{{ website_root }}/api/upload_file" method="post" enctype="multipart/form-data">
             <input type="file" name="file" id="file" accept="image/*,video/*">
             <br>
             <input type="submit" value="Upload File" style="margin-top: 10px;">
+            <input type="hidden" name="token" id="token" value="{{ token }}">
         </form>
 
         <div id="progress-container">
@@ -89,7 +90,7 @@
             var progressBar = document.getElementById('progress-bar');
 
             var xhr = new XMLHttpRequest();
-            xhr.open('POST', '{{ website_root}}/upload_file', true);
+            xhr.open('POST', '{{ website_root}}/api/upload_file', true);
 
             xhr.upload.onprogress = function (e) {
                 if (e.lengthComputable) {
