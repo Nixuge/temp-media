@@ -24,7 +24,8 @@ def load_vars(config_filename: str = "config.json"):
 
         VARS.secret = data["secret"]
         VARS.website_root = data["website_root"]
-        VARS.media_serve_url = data["media_serve_url"]
+        VARS.media_serve_url_panel = data["media_serve_url_panel"]
+        VARS.media_serve_url_embed = data["media_serve_url_embed"]
         VARS.media_path = data["media_path"]
         VARS.meta_subfolder = data["meta_subfolder"]
         VARS.symlink_subfolder = data["symlink_subfolder"]
@@ -63,7 +64,8 @@ def load_vars(config_filename: str = "config.json"):
 class VARS: #default vars, you still need a json.
     secret: str
     website_root: str
-    media_serve_url: str
+    media_serve_url_panel: str
+    media_serve_url_embed: str
     media_path: str
     meta_subfolder: str
     symlink_subfolder: str
@@ -206,7 +208,7 @@ def index():
     
     return render_template(
         "index.html",
-        media_serve_url = VARS.media_serve_url,
+        media_serve_url_panel = VARS.media_serve_url_panel,
         symlink_subfolder = VARS.symlink_subfolder,
         meta_subfolder = VARS.meta_subfolder,
         files = list_all_files(),
@@ -237,7 +239,8 @@ def file_data(filename: str):
     return render_template(
         "media.html",
         website_root = VARS.website_root,
-        media_serve_url = VARS.media_serve_url,
+        media_serve_url_embed = VARS.media_serve_url_embed,
+        media_serve_url_panel = VARS.media_serve_url_panel,
         symlink_subfolder = VARS.symlink_subfolder,
         meta_subfolder = VARS.meta_subfolder,
         duration = duration,
@@ -335,12 +338,12 @@ def embed_page(filename: str):
     if not os.path.exists(f"{VARS.media_path}/{VARS.symlink_subfolder}/{filename}"):
         return render_template("embed_missing.html")
     
-    url = f"{VARS.media_serve_url}/{VARS.symlink_subfolder}/{filename}"
+    url = f"{VARS.media_serve_url_embed}/{filename}"
     return render_template(
         "embed.html",
         filename = filename,
         is_video = is_video(filename),
-        thumb_url = url if is_video(filename) else url + "-thumb.png",
+        thumb_url = url + "-thumb.png" if is_video(filename) else url,
         url = url
     )
 
@@ -360,7 +363,7 @@ def serve_media(filename: str):
 
 
 def thread_func():
-    while True:
+    while VARS.thread_running:
         current_time = time.time_ns() / 1000000000
         to_remove: list[tuple[str, str]] = []
         for original_filename, symlinks in VARS.symlinks.items():

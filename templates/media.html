@@ -215,7 +215,8 @@
 
     <script>
         const website_root = '{{ website_root }}';
-        const media_serve_url = '{{ media_serve_url }}';
+        const media_serve_url_panel = '{{ media_serve_url_panel }}';
+        const media_serve_url_embed = '{{ media_serve_url_embed }}';
         const symlink_subfolder = '{{ symlink_subfolder }}';
         const meta_subfolder = '{{ meta_subfolder }}';
         const duration = parseFloat('{{ duration }}');
@@ -269,7 +270,7 @@
             document.getElementById('comment-input').value = comment;
 
             const mediaContainer = document.getElementById('media');
-            const mediaUrl = `${media_serve_url}/${encodeURIComponent(filename)}`;
+            const mediaUrl = `${media_serve_url_panel}/${encodeURIComponent(filename)}`;
             const mediaTypeValue = mediaType(filename);
 
             if (mediaTypeValue === 'image') {
@@ -404,7 +405,7 @@
 
             // Easily get the full url without handling cases manually
             const img = new Image();
-            img.src = `${media_serve_url}/${symlink_subfolder}/${key}`
+            img.src = `${media_serve_url_embed}/${key}`
 
             copyToClipboardSafariSupportLmao(img.src)
         }

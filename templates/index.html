@@ -154,7 +154,7 @@ body {
     const showImagesCheckbox = document.getElementById('show-images');
     const showVideosCheckbox = document.getElementById('show-videos');
 
-    const media_serve_url = '{{ media_serve_url }}';
+    const media_serve_url_panel = '{{ media_serve_url_panel }}';
     const symlink_subfolder = '{{ symlink_subfolder }}';
     const meta_subfolder = '{{ meta_subfolder }}';
     const data = JSON.parse('{{files | tojson}}');
@@ -190,7 +190,7 @@ body {
             if (mediaType(fileName) == 'video') {
                 imageItem.innerHTML = `
                     <div class="image-glyph">${glyph}</div>
-                    <img src="${media_serve_url}/${meta_subfolder}/${image.filename}-thumb.png" alt="${image.filename}">
+                    <img src="${media_serve_url_panel}/${meta_subfolder}/${image.filename}-thumb.png" alt="${image.filename}">
                     <div class="footer">
                         <h3>${image.filename}</h3>
                         <p>${comment}</p>
@@ -199,7 +199,7 @@ body {
             } else if (mediaType(fileName) == 'image') {
                 imageItem.innerHTML = `
                     <div class="image-glyph">${glyph}</div>
-                    <img src="${media_serve_url}/${image.filename}" alt="${image.filename}">
+                    <img src="${media_serve_url_panel}/${image.filename}" alt="${image.filename}">
                     <div class="footer">
                         <h3>${image.filename}</h3>
                         <p>${comment}</p>
