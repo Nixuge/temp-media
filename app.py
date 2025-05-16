@@ -69,6 +69,7 @@ class VARS: #default vars, you still need a json.
     comments: dict[str, str] = {} #TOOD: IMPLEMENT
     symlinks: dict[str, dict[str, dict[str, str | int]]] = {} 
     # {original_filename: {symlinks_name1: {expiry: ..., name: ...}, {symlink_name2: ...}} }
+    external_to_remove: list[tuple[str, str]] = []
 
 
 def is_video(filename: str):
@@ -123,6 +124,8 @@ def list_all_files():
     files.sort(key=lambda x: os.path.getmtime(x))
     for i, f in enumerate(files):
         files[i] = f.replace(f"{VARS.media_path}/", "").replace(f"{VARS.media_path}", "")
+
+    files.reverse()
 
     # Note: before this func was generating the length,
     # but not really needed here tbh, can just skip. (at least for now, until maybe implement in webui root).
@@ -205,9 +208,10 @@ def delete_symlink():
     filename = request.json["filename"] #type: ignore
     symlink_name = request.json["symlink_name"] #type: ignore
 
-    VARS.symlinks[filename][symlink_name]["expires_on"] = 0
+    VARS.external_to_remove.append((filename, symlink_name))
+    VARS.symlinks[filename].pop(symlink_name) # Have it disappear instantly from the ui.
 
-    write_new_symlink_dict_to_json()
+    # write_new_symlink_dict_to_json() # Updated in thread anyways, not required.
     return "success"
 
 
@@ -266,6 +270,35 @@ def embed_page(filename: str):
         url = url
     )
 
+@app.route("/upload")
+def upload_page():
+    return render_template(
+        "upload.html",
+        website_root = VARS.website_root
+    )
+
+@app.route('/upload_file', methods=['POST'])
+def upload_file():
+    if 'file' not in request.files:
+        return 'No file part', 400
+
+    file = request.files['file']
+    if file.filename == '' or file.filename is None:
+        return 'No selected file', 400
+
+    file.save(f"{VARS.media_path}/{file.filename}")
+    return 'File uploaded successfully'
+
+@app.route('/delete_file', methods=['POST'])
+def delete_file():
+    filename = request.json['filename'] #type: ignore
+    
+    os.remove(f"{VARS.media_path}/{filename}")
+    for link in VARS.symlinks.get(filename, {}).keys():
+        VARS.external_to_remove.append((filename, link))
+
+    return 'File deleted successfully'
+
 @app.route("/<filename>")
 def file_data(filename: str):
     duration = 0
@@ -294,8 +327,11 @@ def thread_func():
                 if current_time >= symlink_data["expires_on"]: #type: ignore
                     to_remove.append((original_filename, symlink))
 
-        if len(to_remove) > 0:
-            for symlink in to_remove:
+        if len(to_remove) > 0 or len(VARS.external_to_remove) > 0:
+            all_to_remove = to_remove + VARS.external_to_remove
+            VARS.external_to_remove.clear()
+
+            for symlink in all_to_remove:
                 try:
                     print(f"Trying to delete {symlink}")
                     symlink_name = symlink[1]
@@ -303,7 +339,11 @@ def thread_func():
                     os.remove(f"{VARS.media_path}/{VARS.symlink_subfolder}/{symlink_name}")
                     if is_video(media_name):
                         os.remove(f"{VARS.media_path}/{VARS.symlink_subfolder}/{symlink_name}-thumb.png")
-                    VARS.symlinks[media_name].pop(symlink_name)
+                    if not media_name in VARS.symlinks.keys() or not symlink_name in VARS.symlinks[media_name].keys():
+                        print("Symlink deleted but couldn't find path in symlink dict.")
+                    else:
+                        VARS.symlinks[media_name].pop(symlink_name)
+                    print("Done deleting symlink.")
                 except: 
                     print(f"Failed to remove {symlink}")
                     pass

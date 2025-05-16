@@ -33,6 +33,17 @@
             cursor: pointer;
         }
 
+        .nuke-button {
+            background-color: #bd0000;
+            color: white;
+            border: none;
+            padding: 5px 16px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin-left: 10px;
+            transform: translateY(-2px);
+        }
+
         .content {
             display: flex;
             flex: 1;
@@ -253,6 +264,7 @@
             } else {
                 document.getElementById('filename').textContent = filename;
             }
+            document.getElementById('filename').innerHTML += '<button class="nuke-button" onclick="deleteMedia()">Delete</button>';
 
             document.getElementById('comment-input').value = comment;
 
@@ -401,6 +413,28 @@
             img.src = `${website_root}/embed/${key}`
 
             copyToClipboardSafariSupportLmao(img.src)
+        }
+
+        function deleteMedia(key) {
+            if (confirm(`Are you sure you want to delete ${filename}?`)) {
+                fetch(`${website_root}/delete_file`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    filename: filename,
+                }),
+            })
+                .then(data => {
+                    console.log('Success:', data);
+                    window.history.back()
+                })
+                .catch((error) => {
+                    alert("Error: " + error);
+                    console.error('Error:', error);
+                });
+            }
         }
     </script>
 </body>

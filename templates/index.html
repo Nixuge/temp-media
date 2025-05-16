@@ -8,9 +8,18 @@
 </head>
 <body>
     <div class="search-filter-container">
-        <input type="text" id="search-bar" placeholder="Search by title or comment...">
-        <label><input type="checkbox" id="show-images" checked> 📷</label>
-        <label><input type="checkbox" id="show-videos" checked> 🎬</label>
+        <button class="upload-button" onclick="window.location.href += 'upload'">Upload</button>
+        <input type="text" id="search-bar" placeholder="Search">
+        <div class="checkbox-container">
+            <label class="custom-checkbox">
+                <input type="checkbox" id="show-images" checked>
+                <span class="checkbox-glyph">📷</span>
+            </label>
+            <label class="custom-checkbox">
+                <input type="checkbox" id="show-videos" checked>
+                <span class="checkbox-glyph">🎬</span>
+            </label>
+        </div>
     </div>
     <div class="image-grid" id="image-grid">
         <!-- Images will be inserted here by JavaScript -->
@@ -40,12 +49,52 @@ body {
     color: #ffffff;
     border: 1px solid #333;
     border-radius: 4px;
+    min-width:40px;
 }
 
-.search-filter-container label {
+.checkbox-container {
+    display: flex;
+    /* margin-left: 10px; */
+}
+
+.custom-checkbox {
     display: flex;
     align-items: center;
     margin-left: 10px;
+    position: relative;
+}
+
+.custom-checkbox input[type="checkbox"] {
+    opacity: 0;
+    position: absolute;
+}
+
+.checkbox-glyph {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    height: 40px;
+    background-color: #1e1e1e;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 20px;
+}
+
+.custom-checkbox input[type="checkbox"]:checked + .checkbox-glyph {
+    background-color: orange;
+}
+
+.upload-button {
+    height: 40px;
+    background-color: #1e1e1e;
+    color: white;
+    border: none;
+    padding: 8px 16px;
+    border-radius: 4px;
+    cursor: pointer;
+    margin-right: 10px;
+    border: 1px solid #333;
 }
 
 .image-grid {
@@ -92,6 +141,7 @@ body {
     font-size: 14px;
     color: #aaaaaa;
 }
+
 .footer {
     /* TODO: Fix, anchor AT BOTTOM. */
 }

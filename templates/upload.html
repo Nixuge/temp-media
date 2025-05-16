@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>File Upload with Progress Bar</title>
+    <style>
+        .header {
+            background-color: #1e1e1e;
+            padding: 10px;
+            display: flex;
+            align-items: center;
+        }
+
+        .back-button, input {
+            background-color: #333;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        input {
+            padding: 8px 0;
+            width: 100%;
+        }
+
+        #progress-container {
+            width: 100%;
+            background-color: #f1f1f1;
+            margin-top: 10px;
+        }
+
+        #progress-bar {
+            width: 0%;
+            height: 30px;
+            background-color: #4CAF50;
+            text-align: center;
+            line-height: 30px;
+            color: white;
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: Arial, sans-serif;
+            background-color: #121212;
+            color: #ffffff;
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+        }
+
+        #content {
+            text-align: center;
+            width: 80%;
+            margin: 0;
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+        }
+    </style>
+</head>
+
+<body>
+    <div class="header">
+        <button class="back-button" onclick="window.history.back()">Back</button>
+    </div>
+    <div id="content">
+        <h1>Upload an Image or Video</h1>
+        <form id="upload-form" action="{{ website_root }}/upload_file" method="post" enctype="multipart/form-data">
+            <input type="file" name="file" id="file" accept="image/*,video/*">
+            <br>
+            <input type="submit" value="Upload File" style="margin-top: 10px;">
+        </form>
+
+        <div id="progress-container">
+            <div id="progress-bar">0%</div>
+        </div>
+    </div>
+
+    <script>
+        document.getElementById('upload-form').addEventListener('submit', function (e) {
+            e.preventDefault();
+
+            var formData = new FormData(this);
+            var progressBar = document.getElementById('progress-bar');
+
+            var xhr = new XMLHttpRequest();
+            xhr.open('POST', '{{ website_root}}/upload_file', true);
+
+            xhr.upload.onprogress = function (e) {
+                if (e.lengthComputable) {
+                    var percentComplete = (e.loaded / e.total) * 100;
+                    progressBar.style.width = percentComplete + '%';
+                    progressBar.textContent = Math.round(percentComplete) + '%';
+                }
+            };
+
+            xhr.onload = function () {
+                if (xhr.status === 200) {
+                    // alert('File uploaded successfully!');
+                } else {
+                    // alert('Error uploading file.');
+                }
+            };
+
+            xhr.send(formData);
+        });
+    </script>
+</body>
+
+</html>
