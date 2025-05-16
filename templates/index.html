@@ -103,6 +103,12 @@ body {
     gap: 20px;
 }
 
+@media (max-width: 600px) {
+    .image-grid {
+        grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+    }
+}
+
 .image-item {
     text-align: center;
     background-color: #1e1e1e;
