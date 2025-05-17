@@ -7,7 +7,7 @@ import shutil
 import string
 import threading
 import time
-from flask import Flask, render_template, request, send_from_directory
+from flask import Flask, make_response, render_template, request, send_from_directory
 import os
 from gevent.pywsgi import WSGIServer
 import json
@@ -297,25 +297,53 @@ def set_comment():
 
 @app.route('/api/upload_file', methods=['POST'])
 def upload_file():
+    # Flask does not seem to support file uploads greater than like 40mb (even with the config var upped)
+    # hence why we're doing this.
+    # https://stackoverflow.com/a/60329667
     token = request.form.get('token')
     if not token:
         return 'No token provided', 400
     if token != VARS.secret:
         return "Bad auth token", 403
     
-    if 'file' not in request.files:
-        return 'No file part', 400
+    file = request.files['file']
 
-    files = request.files.getlist('file')
-    if not files or all(file.filename == '' for file in files):
-        return 'No selected file', 400
+    save_path = f"{VARS.media_path}/{file.filename}-TEMP"
+    current_chunk = int(request.form['dzchunkindex'])
 
-    for file in files:
-        if file.filename != '':
-            file.save(f"{VARS.media_path}/{file.filename}")
+    # If the file already exists it's ok if we are appending to it,
+    # but not if it's new file that would overwrite the existing one
+    if os.path.exists(save_path) and current_chunk == 0:
+        # 400 and 500s will tell dropzone that an error occurred and show an error
+        return make_response(('File already exists', 400))
 
-    file.save(f"{VARS.media_path}/{file.filename}")
-    return 'File uploaded successfully'
+    try:
+        with open(save_path, 'ab') as f:
+            f.seek(int(request.form['dzchunkbyteoffset']))
+            f.write(file.stream.read())
+    except OSError as e:
+        # log.exception will include the traceback so we can see what's wrong 
+        print(f'Could not write to file {e}')
+        return make_response((f"We couldn't write the file to disk: {e}", 500))
+
+    total_chunks = int(request.form['dztotalchunkcount'])
+
+    if current_chunk + 1 == total_chunks:
+        # This was the last chunk, the file should be complete and the size we expect
+        if os.path.getsize(save_path) != int(request.form['dztotalfilesize']):
+            print(f"File {file.filename} was completed, "
+                      f"but has a size mismatch."
+                      f"Was {os.path.getsize(save_path)} but we"
+                      f" expected {request.form['dztotalfilesize']} ")
+            return make_response(('Size mismatch', 500))
+        else:
+            os.rename(save_path, f"{VARS.media_path}/{file.filename}")
+            print(f'File {file.filename} has been uploaded successfully')
+    # else:
+        # print(f'Chunk {current_chunk + 1} of {total_chunks} '
+        #           f'for file {file.filename} complete')
+
+    return make_response(("Chunk upload successful", 200))
 
 
 @app.route('/api/delete_file', methods=['POST'])
