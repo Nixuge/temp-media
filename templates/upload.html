@@ -69,11 +69,11 @@
         <button class="back-button" onclick="window.history.back()">Back</button>
     </div>
     <div id="content">
-        <h1>Upload an Image or Video</h1>
+        <h1>Upload Images or Videos</h1>
         <form id="upload-form" action="{{ website_root }}/api/upload_file" method="post" enctype="multipart/form-data">
-            <input type="file" name="file" id="file" accept="image/*,video/*">
+            <input type="file" name="file" id="file" accept="image/*,video/*" multiple>
             <br>
-            <input type="submit" value="Upload File" style="margin-top: 10px;">
+            <input type="submit" value="Upload Files" style="margin-top: 10px;">
             <input type="hidden" name="token" id="token" value="{{ token }}">
         </form>
 
@@ -90,7 +90,7 @@
             var progressBar = document.getElementById('progress-bar');
 
             var xhr = new XMLHttpRequest();
-            xhr.open('POST', '{{ website_root}}/api/upload_file', true);
+            xhr.open('POST', '{{ website_root }}/api/upload_file', true);
 
             xhr.upload.onprogress = function (e) {
                 if (e.lengthComputable) {
@@ -102,9 +102,9 @@
 
             xhr.onload = function () {
                 if (xhr.status === 200) {
-                    // alert('File uploaded successfully!');
+                    // alert('Files uploaded successfully!');
                 } else {
-                    // alert('Error uploading file.');
+                    // alert('Error uploading files.');
                 }
             };
 

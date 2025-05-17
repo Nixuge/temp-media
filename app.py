@@ -306,9 +306,13 @@ def upload_file():
     if 'file' not in request.files:
         return 'No file part', 400
 
-    file = request.files['file']
-    if file.filename == '' or file.filename is None:
+    files = request.files.getlist('file')
+    if not files or all(file.filename == '' for file in files):
         return 'No selected file', 400
+
+    for file in files:
+        if file.filename != '':
+            file.save(f"{VARS.media_path}/{file.filename}")
 
     file.save(f"{VARS.media_path}/{file.filename}")
     return 'File uploaded successfully'
